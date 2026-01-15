@@ -1,21 +1,21 @@
 from functools import cmp_to_key
 
-from nonebot import CommandSession, CQHttpError, on_command
+from nonebot import CommandSession, on_command
 from nonebot import permission as perm
 from nonebot.argparse import ArgumentParser
 
-from hoshino import Service, priv
+from hoshino import Service, priv, util
 
 PRIV_TIP = f'群主={priv.OWNER} 群管={priv.ADMIN} 群员={priv.NORMAL} bot维护组={priv.SUPERUSER}'
 
 @on_command('lssv', aliases=('服务列表', '功能列表'), permission=perm.GROUP_ADMIN, only_to_me=False, shell_like=True)
-async def lssv(session:CommandSession):
+async def lssv(session: CommandSession):
     parser = ArgumentParser(session=session)
     parser.add_argument('-a', '--all', action='store_true')
     parser.add_argument('-H', '--hidden', action='store_true')
     parser.add_argument('-g', '--group', type=int, default=0)
     args = parser.parse_args(session.argv)
-    
+
     verbose_all = args.all
     only_hidden = args.hidden
     if session.ctx['user_id'] in session.bot.config.SUPERUSERS:
@@ -38,14 +38,14 @@ async def lssv(session:CommandSession):
 
 
 @on_command('enable', aliases=('启用', '开启', '打开'), permission=perm.GROUP, only_to_me=False)
-async def enable_service(session:CommandSession):
+async def enable_service(session: CommandSession):
     await switch_service(session, turn_on=True)
 
 @on_command('disable', aliases=('禁用', '关闭'), permission=perm.GROUP, only_to_me=False)
-async def disable_service(session:CommandSession):
+async def disable_service(session: CommandSession):
     await switch_service(session, turn_on=False)
 
-async def switch_service(session:CommandSession, turn_on:bool):
+async def switch_service(session: CommandSession, turn_on: bool):
     action_tip = '启用' if turn_on else '禁用'
     if session.ctx['message_type'] == 'group':
         names = session.current_arg_text.split()
@@ -67,7 +67,7 @@ async def switch_service(session:CommandSession, turn_on:bool):
                     except:
                         pass
             else:
-                notfound.append(name)
+                notfound.append(util.filt_message(name))
         msg = []
         if succ:
             msg.append(f'已{action_tip}服务：' + ', '.join(succ))

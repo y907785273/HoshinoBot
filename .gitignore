@@ -16,8 +16,14 @@ image/
 images/
 
 # 非公开的组件
-# hoshino/modules/deepchat/
 hoshino/modules/pcrclanbattle/clanbattlev3
+hoshino/modules/pcrclanbattle/clanbattlev4
+hoshino/modules/umamusume
+hoshino/modules/pcrjjc3-tw
+_git/
+
+# log
+log/
 
 # 暂时删除的代码
 TRASH/

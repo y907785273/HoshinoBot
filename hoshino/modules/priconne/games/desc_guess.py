@@ -1,6 +1,6 @@
 # ref: https://github.com/GWYOG/GWYOG-Hoshino-plugins/blob/master/pcrdescguess
 # Originally written by @GWYOG
-# Reflacted by @Ice-Cirno
+# Reflacted by @Ice9Coffee
 # GPL-3.0 Licensed
 # Thanks to @GWYOG for his great contribution!
 
@@ -8,7 +8,7 @@ import asyncio
 import os
 import random
 
-from hoshino import Service
+from hoshino import Service, util
 from hoshino.modules.priconne import chara
 from hoshino.typing import CQEvent, MessageSegment as Seg
 
@@ -29,19 +29,19 @@ sv = Service("pcr-desc-guess", bundle="pcr娱乐", help_="""
 )
 
 
-@sv.on_fullmatch(("猜角色排行", "猜角色排名", "猜角色排行榜", "猜角色群排行"))
+@sv.on_fullmatch("猜角色排行", "猜角色排名", "猜角色排行榜", "猜角色群排行")
 async def description_guess_group_ranking(bot, ev: CQEvent):
     ranking = gm.db.get_ranking(ev.group_id)
     msg = ["【猜角色小游戏排行榜】"]
     for i, item in enumerate(ranking):
         uid, count = item
         m = await bot.get_group_member_info(self_id=ev.self_id, group_id=ev.group_id, user_id=uid)
-        name = m["card"] or m["nickname"] or str(uid)
+        name = util.filt_message(m["card"]) or util.filt_message(m["nickname"]) or str(uid)
         msg.append(f"第{i + 1}名：{name} 猜对{count}次")
     await bot.send(ev, "\n".join(msg))
 
 
-@sv.on_fullmatch(("猜角色", "猜人物"))
+@sv.on_fullmatch("猜角色", "猜人物")
 async def description_guess(bot, ev: CQEvent):
     if gm.is_playing(ev.group_id):
         await bot.finish(ev, "游戏仍在进行中…")
@@ -60,7 +60,7 @@ async def description_guess(bot, ev: CQEvent):
             if game.winner:
                 return
         c = chara.fromid(game.answer)
-    await bot.send(ev, f"正确答案是：{c.name} {c.icon.cqcode}\n很遗憾，没有人答对~")
+    await bot.send(ev, f"正确答案是：{c.name} {await c.get_icon_cqcode()}\n很遗憾，没有人答对~")
 
 
 @sv.on_message()
@@ -72,5 +72,5 @@ async def on_input_chara_name(bot, ev: CQEvent):
     if c.id != chara.UNKNOWN and c.id == game.answer:
         game.winner = ev.user_id
         n = game.record()
-        msg = f"正确答案是：{c.name}{c.icon.cqcode}\n{Seg.at(ev.user_id)}猜对了，真厉害！TA已经猜对{n}次了~\n(此轮游戏将在几秒后自动结束，请耐心等待)"
+        msg = f"正确答案是：{c.name}{await c.get_icon_cqcode()}\n{Seg.at(ev.user_id)}猜对了，真厉害！TA已经猜对{n}次了~\n(此轮游戏将在几秒后自动结束，请耐心等待)"
         await bot.send(ev, msg)

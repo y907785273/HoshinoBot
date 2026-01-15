@@ -1,5 +1,5 @@
-from hoshino.typing import CQEvent, MessageSegment
-from hoshino.util import FreqLimiter
+from hoshino.typing import CQEvent
+from hoshino.util import FreqLimiter, filt_message
 
 from .. import chara
 from . import sv
@@ -29,10 +29,11 @@ async def whois(bot, ev: CQEvent):
 
     lmt.start_cd(uid, 120 if guess else 0)
     if guess:
-        msg = f'兰德索尔似乎没有叫"{name}"的人...\n角色别称补全计划: github.com/Ice-Cirno/HoshinoBot/issues/5'
+        name = filt_message(name)
+        msg = f'兰德索尔似乎没有叫"{name}"的人...\n角色别称补全计划: github.com/Ice9Coffee/LandosolRoster'
         await bot.send(ev, msg)
-        msg = f'您有{confi}%的可能在找{guess_name} {c.icon.cqcode} {c.name}'
+        msg = f'您有{confi}%的可能在找{guess_name} {await c.get_icon_cqcode()} {c.name}'
         await bot.send(ev, msg)
     else:
-        msg = f'{c.icon.cqcode} {c.name}'
+        msg = f'{await c.get_icon_cqcode()} {c.name}'
         await bot.send(ev, msg, at_sender=True)

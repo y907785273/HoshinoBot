@@ -1,5 +1,6 @@
 import base64
 import os
+import random
 import time
 import unicodedata
 from collections import defaultdict
@@ -9,6 +10,7 @@ from io import BytesIO
 import pytz
 import zhconv
 from aiocqhttp.exceptions import ActionFailed
+from aiocqhttp.message import escape
 from matplotlib import pyplot as plt
 from PIL import Image
 
@@ -42,7 +44,7 @@ async def delete_msg(ev: CQEvent):
     try:
         await hoshino.get_bot().delete_msg(self_id=ev.self_id, message_id=ev.message_id)
     except ActionFailed as e:
-        hoshino.logger.error(f'撤回失败 retcode={e.retcode}')
+        hoshino.logger.error(f'撤回失败: {e}')
     except Exception as e:
         hoshino.logger.exception(e)
 
@@ -53,19 +55,22 @@ async def silence(ev: CQEvent, ban_time, skip_su=True):
             return
         await hoshino.get_bot().set_group_ban(self_id=ev.self_id, group_id=ev.group_id, user_id=ev.user_id, duration=ban_time)
     except ActionFailed as e:
-        hoshino.logger.error(f'禁言失败 retcode={e.retcode}')
+        if 'NOT_MANAGEABLE' in str(e):
+            return
+        else:
+            hoshino.logger.error(f'禁言失败 {e}')
     except Exception as e:
         hoshino.logger.exception(e)
 
 
-def pic2b64(pic:Image) -> str:
+def pic2b64(pic: Image) -> str:
     buf = BytesIO()
     pic.save(buf, format='PNG')
     base64_str = base64.b64encode(buf.getvalue()).decode()
     return 'base64://' + base64_str
 
 
-def fig2b64(plt:plt) -> str:
+def fig2b64(plt: plt) -> str:
     buf = BytesIO()
     plt.savefig(buf, format='PNG', dpi=100)
     base64_str = base64.b64encode(buf.getvalue()).decode()
@@ -102,7 +107,7 @@ DATE_NAME = (
     '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
     '卅一'
 )
-def date_name(x:int) -> str:
+def date_name(x: int) -> str:
     return DATE_NAME[x - 1]
 
 NUM_NAME = (
@@ -117,7 +122,7 @@ NUM_NAME = (
     '八〇', '八一', '八二', '八三', '八四', '八五', '八六', '八七', '八八', '八九',
     '九〇', '九一', '九二', '九三', '九四', '九五', '九六', '九七', '九八', '九九',
 )
-def time_name(hh:int, mm:int) -> str:
+def time_name(hh: int, mm: int) -> str:
     return NUM_NAME[hh] + NUM_NAME[mm]
 
 
@@ -138,7 +143,7 @@ class FreqLimiter:
 
 class DailyNumberLimiter:
     tz = pytz.timezone('Asia/Shanghai')
-    
+
     def __init__(self, max_num):
         self.today = -1
         self.count = defaultdict(int)
@@ -178,3 +183,46 @@ def filt_message(message: Union[Message, str]):
         return message
     else:
         raise TypeError
+
+
+
+def render_list(lines, prompt="") -> str:
+    n = len(lines)
+    if n == 0:
+        return prompt
+    if n == 1:
+        return prompt + "\n┗" + lines[0]
+    return prompt + "\n┣" + "\n┣".join(lines[:-1]) + "\n┗" + lines[-1]
+
+
+DEVICES = [
+    '22号对水上电探改四(后期调整型)',
+    '42号对空电探改二',
+    '15m二重测距仪改+21号电探改二+熟练射击指挥所',
+    'FuMO25 雷达',
+    'SK+SG 雷达',
+    'SG 雷达(后期型)',
+    'GFCS Mk.37',
+    '潜水舰搭载电探&逆探(E27)',
+    'HF/DF+Type144/147 ASDIC',
+    '三式指挥联络机(对潜)',
+    'O号观测机改二',
+    'S-51J改',
+    '二式陆上侦察机(熟练)',
+    '东海(九〇一空)',
+    '二式大艇',
+    'PBY-5A Catalina',
+    '零式水上侦察机11型乙(熟练)',
+    '零式水上侦察机11型乙改(夜侦)',
+    '紫云',
+    'Ar196改',
+    'Ro.43水侦',
+    'OS2U',
+    'S9 Osprey',
+    '彩云(东加罗林空)',
+    '彩云(侦四)',
+    '试制景云(舰侦型)',
+]
+
+def randomizer(target):
+    return lambda m: f'{random.choice(DEVICES)}监测到{target}!{"!"*random.randint(0,4)}\n{m}'
